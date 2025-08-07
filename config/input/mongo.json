@@ -1,0 +1,6 @@
+{
+    "type": "mongo",
+    "chunks": 10,
+    "maxGzipFileSize": 4096000000,
+    "rangesSplitMethod": "sampling"
+}

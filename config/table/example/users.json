@@ -1,0 +1,42 @@
+[
+  {
+    "name": "id",
+    "type": "STRING",
+    "description": "User ID"
+  },
+  {
+    "name": "username",
+    "type": "STRING",
+    "description": "Username which used by login. This value is unique in system."
+  },
+  {
+    "name": "test_user",
+    "type": "BOOLEAN",
+    "description": "true if this user is test user"
+  },
+  {
+    "name": "account_details",
+    "type": "RECORD",
+    "mode": "REPEATED",
+    "description": "Account detail info",
+    "fields": [
+      {
+        "name": "name",
+        "type": "STRING"
+      },
+      {
+        "name": "age",
+        "type": "INTEGER"
+      },
+      {
+        "name": "score",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "description": "Timestamp when this user created"
+  }
+]

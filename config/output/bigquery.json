@@ -1,0 +1,9 @@
+{
+    "type": "bigquery",
+    "projectId": "gcp-projectid",
+    "useTempDataset": false,
+    "tempDataSet": "temp",
+    "finalDataset": "master",
+    "gcsBucket": "temp-mongo-bq",
+    "gcsParallelUploads": 10
+}
