@@ -47,7 +47,7 @@ func (bq *BigQueryStorage) Setup(config map[string]interface{}) {
 
 	// Initialize GCP Network layer
 	bq.gcpLayer = gcpimpl.New()
-	if err := bq.gcpLayer.Setup(bq.ctx, bq.gcsBucket, bq.projectID, bq.tempDataSet); err != nil {
+	if err := bq.gcpLayer.Setup(bq.ctx, bq.gcsBucket, bq.projectID, bq.GetDataset()); err != nil {
 		panic("Failed to setup GCP layer: " + err.Error())
 	}
 
@@ -59,6 +59,7 @@ func (bq *BigQueryStorage) Close() error {
 
 func (bq *BigQueryStorage) CheckTableExists(tablePath string) (bool, string, error) {
 	dataset := bq.GetDataset()
+	logger.Info("checking table %s in dataset %s", tablePath, dataset)
 	return bq.gcpLayer.CheckTableExists(tablePath, dataset)
 }
 

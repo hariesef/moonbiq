@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -562,7 +563,7 @@ func (m *MongoStorage) GetIDRanges3(collection *mongo.Collection, chunks int) ([
 	logger.Debug("counting documents in collection %s", collection.Name())
 	totalDocs, err := collection.CountDocuments(context.Background(), bson.M{})
 	if err != nil {
-		logger.Error("failed to count documents in collection: %v", err)
+		logger.Error("failed to count documents: %v", err)
 		return nil, fmt.Errorf("failed to count documents: %v", err)
 	}
 	if totalDocs < 1 {
@@ -798,38 +799,57 @@ func (m *MongoStorage) processChunk(collection *mongo.Collection, tableName stri
 		}
 		// logger.Debug("decoded document in chunk %d: %v", chunkNum, doc)
 
-		// Rename _id to id for output
-		if id, exists := doc["_id"]; exists {
-			doc["id"] = id
-			delete(doc, "_id")
-		}
+		// -- REPLACED BY bytes.ReplaceAll()
+		// // Rename _id to id for output
+		// if id, exists := doc["_id"]; exists {
+		// 	doc["id"] = id
+		// 	delete(doc, "_id")
+		// }
 
-		//This is special case handling. For backward compatibility.
-		//Somehow embulk outputs record as string, if the schema says so.
+		//This is special case handling. For backward compatibility with Embulk.
+		//Somehow embulk supports all of these corrections.
 		for fieldName, value := range doc {
 
 			// Remove null fields
 			// Sometimes data from mongo has null value but schema says REPEATED
+			// Better remove it.
 			if value == nil {
 				delete(doc, fieldName)
 				continue
 			}
 
-			// Handle [null] case - more robust type checking
 			switch v := value.(type) {
-			case primitive.A: // MongoDB's array type
-				if len(v) == 1 && v[0] == nil {
+			case primitive.A:
+				arr := []interface{}(v)
+				// Handle [null] case
+				// [] is accepted by BQ, but [null] is invalid, thus have to be deleted
+				if len(arr) == 1 && arr[0] == nil {
 					delete(doc, fieldName)
 					continue
 				}
-			case []interface{}:
-				if len(v) == 1 && v[0] == nil {
-					delete(doc, fieldName)
-					continue
-				}
+
+				// -- REPLACED BY bytes.ReplaceAll()
+				// // Handle field like "answers":[{"_id": ...}]
+				// // Rename it to "answers":[{"id": ...}] for backward compatibilty with Embulk
+				// modified := false
+				// for i, elem := range arr {
+				// 	if elemMap, ok := elem.(bson.M); ok {
+				// 		// logger.Debug("elem bson.M successful for elem %v", elem)
+				// 		if idVal, exists := elemMap["_id"]; exists {
+				// 			// logger.Debug("_id exists in elem %v", elem)
+				// 			elemMap["id"] = idVal
+				// 			delete(elemMap, "_id")
+				// 			arr[i] = elemMap
+				// 			modified = true
+				// 		}
+				// 	}
+				// }
+				// if modified {
+				// 	doc[fieldName] = arr
+				// }
 			}
 
-			//special case, meta field type if STRING but filled with record{} :pepesad
+			//special case, certain field definition is STRING but actual value from mongo is record{} :pepesad
 			if fieldType, exists := m.fields[fieldName]; exists {
 				if fieldType == "STRING" {
 					switch value.(type) {
@@ -853,6 +873,10 @@ func (m *MongoStorage) processChunk(collection *mongo.Collection, tableName stri
 			logger.Error("failed to marshal document in chunk %d: %v", chunkNum, err)
 			continue
 		}
+
+		// Replace all "_id" field names with "id"
+		// This method is much more efficient and can do it recursively for sub-structs
+		jsonData = bytes.ReplaceAll(jsonData, []byte(`"_id":`), []byte(`"id":`))
 
 		// Write JSON line to gzipped file
 		if _, err := gzWriter.Write(append(jsonData, '\n')); err != nil {

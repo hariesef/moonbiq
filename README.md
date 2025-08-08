@@ -68,6 +68,7 @@ Although the table configuration is mainly needed by output plugin/ BQ to create
 Since all of above handling was supported by Embulk, hence moonbiq also implemented them.
 
 **Special notes:**
+- Somehow Embulk has capability to translate/ rename the mongo primary key _id to "id" without underscore. This feature is retained in moonbiq, but does not have option toggle (always enabled). It is possible to add option to enable the rename or not, for future release. 
 - Moonbiq uses filename convention to determine the table/ collection name. Say, if table file configuration is `./config/table/video_catalog.sources.json`  then it will take **video_catalog.sources** as table name. However in BQ this will be normalized to **video_catalog_sources** since BQ does not accept special character except underscore.
 
 ### Preparing Output Plugin Configuration
@@ -284,11 +285,11 @@ switch  inputType {
   inputStorage  =  storage
   ```
 
-Aside from implementing the interface functions, one mandatory public constructur New() as in 
+Aside from implementing the interface functions, one mandatory public constructur New() is needed to get the initial object instance.
 ```
 storage  :=  mongo.New()
 ```
-is needed to get the initial object instance.
+
 
 
 ### Thank you for your interest in moonbiQ!
